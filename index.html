@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Propuesta de rediseño web — Grovelab</title>
+<meta name="description" content="Propuesta para reconstruir la web de Grovelab: diagnóstico, nueva estructura, experiencia interactiva por cultivo, panel administrable y por qué Next.js.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#E9EEDC">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 28C4 14 14 5 28 4c0 14-9 24-24 24z' fill='%232F5D3A'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --hoja:#E9EEDC;
+  --tinta:#1E2A22;
+  --savia:#2F5D3A;
+  --mango:#E9A23B;
+  --suelo:#2C2119;
+  --raiz:#7A5C3E;
+  --rail:64px;
+  --sans:"Bricolage Grotesque",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --gutter:calc(var(--rail) + clamp(20px,4vw,64px));
+}
+@media (max-width:640px){:root{--rail:30px}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--hoja);color:var(--tinta);font:400 1.125rem/1.68 var(--serif);font-optical-sizing:auto}
+[hidden]{display:none!important}
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .12 0 0 0 0 .16 0 0 0 0 .13 0 0 0 .1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+header,main,footer{position:relative;z-index:2}
+a{color:var(--savia);text-underline-offset:.2em;text-decoration-thickness:1px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:3px solid var(--savia);outline-offset:3px;border-radius:2px}
+
+/* Planta en el margen */
+.rail{position:fixed;z-index:1;top:0;bottom:0;left:clamp(10px,2vw,28px);width:var(--rail);pointer-events:none}
+.ground{position:absolute;left:0;right:0;bottom:0;height:34px}
+.ground svg{display:block;width:100%;height:100%}
+.stem{
+  position:absolute;left:50%;bottom:24px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--savia);
+  height:calc(var(--p,0) * (100% - 48px));
+}
+@media (max-width:640px){.stem{width:2px;margin-left:-1px}}
+.leaf{position:absolute;width:calc(var(--rail)/2 - 2px);bottom:calc(24px + var(--k) * (100% - 48px) / 8);opacity:0;transition:transform .7s cubic-bezier(.2,.9,.25,1.2),opacity .4s ease}
+.leaf svg{display:block;width:100%;height:auto;fill:var(--savia)}
+.leaf.r{left:50%;transform-origin:0 50%;transform:rotate(-18deg) scale(0)}
+.leaf.l{right:50%;transform-origin:100% 50%;transform:rotate(18deg) scale(0)}
+.leaf.l svg{transform:scaleX(-1)}
+.leaf.r.on{opacity:1;transform:rotate(-18deg) scale(1)}
+.leaf.l.on{opacity:1;transform:rotate(18deg) scale(1)}
+.fruit{position:absolute;left:50%;top:-13px;width:14px;height:14px;margin-left:-7px;border-radius:50% 50% 55% 45%;background:var(--mango);transform:scale(0);transition:transform .6s cubic-bezier(.2,.9,.25,1.4)}
+.stem.done .fruit{transform:scale(1)}
+
+/* Estructura */
+.wrap{padding-left:var(--gutter);padding-right:clamp(18px,5vw,72px)}
+.col{max-width:44rem}
+.wide{max-width:62rem}
+section{padding-top:clamp(56px,9vw,112px);padding-bottom:clamp(8px,2vw,24px);scroll-margin-top:16px}
+
+/* Portada */
+.hero{min-height:92vh;min-height:92svh;display:flex;flex-direction:column;justify-content:flex-end;padding-top:12vh;padding-bottom:clamp(40px,7vw,88px)}
+h1{
+  margin:0 0 .32em;max-width:13ch;font-family:var(--sans);font-weight:700;font-size:clamp(2.7rem,9vw,7rem);line-height:.94;letter-spacing:-.025em;
+  font-variation-settings:"wdth" 100,"opsz" 96;text-wrap:balance;
+  animation:asentar 1.6s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes asentar{
+  from{font-weight:260;letter-spacing:.015em;font-variation-settings:"wdth" 75,"opsz" 96}
+  to{font-weight:700;letter-spacing:-.025em;font-variation-settings:"wdth" 100,"opsz" 96}
+}
+.meta{margin:0 0 1.6rem;font:500 1rem/1.4 var(--sans);color:var(--savia)}
+.lead{margin:0;font-size:clamp(1.2rem,2.2vw,1.45rem);line-height:1.55}
+.toc{margin:clamp(32px,6vw,64px) 0 0;padding:0;list-style:none;columns:2 15rem;column-gap:2rem;font:500 1rem/1.4 var(--sans)}
+.toc li{break-inside:avoid;padding:.35rem 0}
+.toc a{text-decoration:none;color:var(--tinta);border-bottom:1px solid rgba(30,42,34,.3)}
+.toc a:hover{color:var(--savia);border-bottom-color:var(--savia)}
+
+/* Texto */
+h2{margin:0 0 .5em;font-family:var(--sans);font-weight:650;font-size:clamp(1.9rem,4.4vw,3.1rem);line-height:1.04;letter-spacing:-.015em;font-variation-settings:"wdth" 94,"opsz" 60;text-wrap:balance}
+h3{margin:2.2rem 0 .6rem;font-family:var(--sans);font-weight:650;font-size:1.25rem;line-height:1.25;font-variation-settings:"opsz" 24}
+p{margin:0 0 1.1rem}
+ul,ol{margin:0 0 1.2rem;padding-left:1.35rem}
+li{margin:.4rem 0;padding-left:.2rem}
+li::marker{color:var(--savia)}
+ol li::marker{font-family:var(--sans);font-weight:650}
+ul.check{list-style:none;padding-left:0}
+ul.check li{position:relative;padding-left:2rem;margin:.65rem 0}
+ul.check li::before{content:"";position:absolute;left:0;top:.42em;width:1rem;height:1rem;border:2px solid var(--savia);border-radius:3px}
+strong{font-weight:650}
+
+/* Tablas */
+.tbl{width:100%;margin:1.6rem 0 1.4rem;border-collapse:collapse;font:400 1rem/1.5 var(--sans);font-variation-settings:"opsz" 14}
+.tbl th{padding:.85rem 1rem;text-align:left;font-weight:650;background:rgba(47,93,58,.12);vertical-align:bottom}
+.tbl td{padding:.95rem 1rem;vertical-align:top;border-bottom:1px solid rgba(30,42,34,.16)}
+.tbl td:first-child{font-weight:650;width:19%}
+.tbl tbody tr:hover td{background:rgba(233,162,59,.1)}
+@media (max-width:760px){
+  .tbl,.tbl tbody,.tbl tr,.tbl td{display:block;width:100%}
+  .tbl thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .tbl tr{margin:0 0 1rem;padding:.4rem 0;border:1px solid rgba(30,42,34,.18);border-radius:6px;background:rgba(255,255,255,.35)}
+  .tbl td{border:0;padding:.45rem 1rem}
+  .tbl td:first-child{width:100%;font-size:1.05rem}
+  .tbl td[data-label]:not(:first-child)::before{content:attr(data-label);display:block;font-weight:650;font-size:.85rem;color:var(--savia);margin-bottom:.1rem}
+}
+
+/* Llamado final */
+.cta{display:inline-block;margin-top:1rem;padding:.95rem 1.6rem;border-radius:999px;background:var(--savia);color:var(--hoja);font:650 1.05rem/1 var(--sans);text-decoration:none;transition:background .2s ease}
+.cta:hover{background:var(--tinta)}
+footer{padding-top:clamp(56px,9vw,104px);padding-bottom:clamp(40px,7vw,72px);font:400 .95rem/1.5 var(--sans);color:rgba(30,42,34,.78)}
+footer p{margin:0 0 .3rem}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  h1{animation:none}
+  .leaf,.fruit{transition:none}
+}
+@media print{.rail,body::before{display:none}.hero{min-height:0}}
+</style>
+</head>
+<body>
+
+<div class="rail" aria-hidden="true">
+  <div class="ground">
+    <svg viewBox="0 0 64 34" preserveAspectRatio="none">
+      <path d="M0 16 Q32 2 64 16 V34 H0Z" fill="#2C2119"/>
+      <path d="M32 17 q-7 6 -13 9 M32 17 q5 6 11 10 M32 17 v11" fill="none" stroke="#7A5C3E" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="stem" id="stem"><span class="fruit"></span></div>
+  <span class="leaf r" style="--k:1"><svg viewBox="0 0 40 20"><path d="M0 10C8-2 26-2 40 8 26 20 8 22 0 10Z"/></svg></span>
+  <span class="leaf l" style="--k:2"><svg viewBox="0 0 40 20"><path d="M0 10C8-2 26-2 40 8 26 20 8 22 0 10Z"/></svg></span>
+  <span class="leaf r" style="--k:3"><svg viewBox="0 0 40 20"><path d="M0 10C8-2 26-2 40 8 26 20 8 22 0 10Z"/></svg></span>
+  <span class="leaf l" style="--k:4"><svg viewBox="0 0 40 20"><path d="M0 10C8-2 26-2 40 8 26 20 8 22 0 10Z"/></svg></span>
+  <span class="leaf r" style="--k:5"><svg viewBox="0 0 40 20"><path d="M0 10C8-2 26-2 40 8 26 20 8 22 0 10Z"/></svg></span>
+  <span class="leaf l" style="--k:6"><svg viewBox="0 0 40 20"><path d="M0 10C8-2 26-2 40 8 26 20 8 22 0 10Z"/></svg></span>
+  <span class="leaf r" style="--k:7"><svg viewBox="0 0 40 20"><path d="M0 10C8-2 26-2 40 8 26 20 8 22 0 10Z"/></svg></span>
+</div>
+
+<header class="hero wrap">
+  <div class="wide">
+    <h1>La web de Grovelab, formulada para cada cultivo</h1>
+    <p class="meta">Propuesta de rediseño web, 13 de octubre de 2026</p>
+    <p class="lead col">La web actual explica bien el negocio, pero su tecnología y su diseño están atrasados. Proponemos reconstruirla con Next.js para que sea más rápida, fácil de administrar y capaz de mostrar lo que distingue a Grovelab: formulaciones específicas por cultivo.</p>
+    <nav aria-label="Contenido de la propuesta">
+      <ul class="toc">
+        <li><a href="#diagnostico">Diagnóstico de la web actual</a></li>
+        <li><a href="#referencia">Referencia y objetivo</a></li>
+        <li><a href="#nueva-web">Cómo quedaría la nueva web</a></li>
+        <li><a href="#experiencia">Del suelo a la cosecha</a></li>
+        <li><a href="#panel">Panel, WhatsApp y chat en línea</a></li>
+        <li><a href="#nextjs">Por qué Next.js y no WordPress</a></li>
+        <li><a href="#pasos">Siguientes pasos</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section id="diagnostico" class="wrap">
+  <div class="wide">
+    <h2>Diagnóstico de la web actual</h2>
+    <div class="col">
+      <p>La web comunica bien qué hace Grovelab, pero varios puntos de diseño, contenido y confianza limitan su imagen y su capacidad de generar contactos.</p>
+      <p><strong>Lo que sí funciona:</strong> la propuesta de valor es clara (importación, formulación y asistencia técnica), muestra el respaldo de registro SENASA, organiza los productos en ocho categorías y ofrece ficha técnica por producto y testimonios en video.</p>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>Área</th><th>Hallazgo</th><th>Efecto en el negocio</th></tr></thead>
+      <tbody>
+        <tr><td>Tecnología</td><td data-label="Hallazgo">WordPress con Slider Revolution 6.6.5 y funciones de tienda (carrito, reseñas) sin precios publicados</td><td data-label="Efecto en el negocio">Plugins que suelen ralentizar la carga y una tienda que no se usa</td></tr>
+        <tr><td>Contenido</td><td data-label="Hallazgo">Copyright 2019, blog de 2020 e imágenes de producto de 2022 en 300×300</td><td data-label="Efecto en el negocio">Imagen de empresa poco actual</td></tr>
+        <tr><td>Idioma</td><td data-label="Hallazgo">Mezcla de español e inglés: «Products», «Customer Reviews», «Shopping Cart»</td><td data-label="Efecto en el negocio">Pierde profesionalismo y posicionamiento</td></tr>
+        <tr><td>Catálogo</td><td data-label="Hallazgo">Unas 6 páginas de productos; sin búsqueda por cultivo ni por plaga</td><td data-label="Efecto en el negocio">El agricultor tarda en encontrar lo que necesita</td></tr>
+        <tr><td>Nosotros</td><td data-label="Hallazgo">Texto técnico extenso, cuatro videos incrustados, galería de 2019, sin cifras ni certificaciones</td><td data-label="Efecto en el negocio">No transmite respaldo ni escala</td></tr>
+        <tr><td>Contacto</td><td data-label="Hallazgo">En las páginas revisadas el pie no muestra teléfono, dirección ni correo; solo Facebook y YouTube</td><td data-label="Efecto en el negocio">Menos oportunidades de recibir consultas</td></tr>
+        <tr><td>Servicios</td><td data-label="Hallazgo">Solo dos servicios, con poco desarrollo</td><td data-label="Efecto en el negocio">Se subestima la asesoría técnica y la marca propia</td></tr>
+        <tr><td>SEO</td><td data-label="Hallazgo">Título de la página de productos en inglés; no se detectó meta descripción</td><td data-label="Efecto en el negocio">Menor visibilidad en buscadores</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="referencia" class="wrap">
+  <div class="wide">
+    <h2>Referencia y objetivo</h2>
+    <div class="col">
+      <p>Tomamos de tqc.com.pe su forma de organizar la información y la llevamos más lejos en diseño, velocidad y en la historia propia de Grovelab.</p>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>Qué hace bien la referencia</th><th>Qué haremos en Grovelab</th></tr></thead>
+      <tbody>
+        <tr><td>Navegación por cultivos: tarjetas que llevan a cada cultivo y de ahí a sus productos</td><td data-label="Qué haremos en Grovelab">Misma lógica, con cultivos propios y un buscador por cultivo, plaga y categoría</td></tr>
+        <tr><td>Ficha de producto con registro SENASA, ingrediente activo, formulación, ficha técnica y hoja de seguridad descargables</td><td data-label="Qué haremos en Grovelab">Ficha equivalente, con dosis recomendadas por cultivo y productos relacionados</td></tr>
+        <tr><td>Formulario «Solicitar información» y botón «Contactar a un Asesor»</td><td data-label="Qué haremos en Grovelab">Formulario de cotización, botón de WhatsApp y chat en línea en cada ficha</td></tr>
+        <tr><td>Cifras, logos de marcas, noticias y pie con datos de contacto y certificaciones</td><td data-label="Qué haremos en Grovelab">Cifras reales de Grovelab, casos en campo y un pie completo con contacto y respaldo</td></tr>
+        <tr><td>Diseño ordenado y corporativo</td><td data-label="Qué haremos en Grovelab">Diseño moderno con tipografía de gran formato, movimiento suave y una experiencia interactiva propia</td></tr>
+      </tbody>
+    </table>
+    <div class="col">
+      <p>La diferencia de fondo: Grovelab formula y fabrica, y ofrece marca propia y asesoría técnica. La nueva web debe contar eso, no parecer un catálogo de distribuidor.</p>
+      <p>Usamos la referencia como guía de organización; el diseño, los textos y las imágenes serán originales de Grovelab.</p>
+    </div>
+  </div>
+</section>
+
+<section id="nueva-web" class="wrap">
+  <div class="col">
+    <h2>Cómo quedaría la nueva web</h2>
+    <p>La nueva web se organiza por cultivos y productos, y muestra el diferencial de Grovelab desde el primer desplazamiento.</p>
+
+    <h3>Mapa del sitio</h3>
+    <ul>
+      <li>Inicio</li>
+      <li>Productos: ocho categorías (plaguicidas con insecticidas, fungicidas y herbicidas; reguladores de crecimiento; bioestimulantes; nutricionales; fitoprotectores; adyuvantes; sólidos; acondicionadores de suelo) y una ficha por producto</li>
+      <li>Cultivos: una página por cultivo con los productos recomendados</li>
+      <li>Nosotros</li>
+      <li>Servicios: importación directa, asesoría y logística en importaciones, registro y marca propia</li>
+      <li>Blog y noticias</li>
+      <li>Zonas comerciales</li>
+      <li>Contacto</li>
+    </ul>
+
+    <h3>El inicio, de arriba hacia abajo</h3>
+    <ol>
+      <li>Portada con titular de gran formato, por ejemplo «Productos para el agro, formulados para cada cultivo», y un botón de cotización.</li>
+      <li>Experiencia interactiva «Del suelo a la cosecha» (se detalla en la siguiente sección).</li>
+      <li>Buscador de productos por cultivo, plaga o categoría.</li>
+      <li>Cultivos destacados, en tarjetas con imagen.</li>
+      <li>Productos destacados.</li>
+      <li>Respaldo: registro SENASA, certificaciones y cifras reales de la empresa (a definir con Grovelab).</li>
+      <li>Servicios y marca propia.</li>
+      <li>Testimonios en video de campo, que cargan solo cuando el visitante los reproduce.</li>
+      <li>Noticias y blog.</li>
+      <li>Zonas comerciales y llamado final a contactar.</li>
+    </ol>
+    <p>El pie incluirá teléfono, dirección, correo, redes sociales y WhatsApp. La paleta y la tipografía se definen a partir de la marca actual de Grovelab.</p>
+  </div>
+</section>
+
+<section id="experiencia" class="wrap">
+  <div class="col">
+    <h2>Experiencia estrella: del suelo a la cosecha</h2>
+    <p>Una planta ilustrada crece mientras el visitante se desplaza y explica, en unos 30 segundos, cómo Grovelab nutre y protege cada etapa del cultivo. La planta que crece al margen de esta página es una versión mínima de la idea.</p>
+    <ol>
+      <li><strong>Raíz y suelo:</strong> la cámara entra al suelo y muestra la nutrición con nutrientes quelatizados y fuentes orgánicas naturales.</li>
+      <li><strong>Crecimiento:</strong> al subir el tallo y las hojas, se activan los grupos de producto (bioestimulantes, nutricionales, fitoprotectores).</li>
+      <li><strong>Selector de cultivo:</strong> el visitante elige un cultivo (por ejemplo vid, palto, arándano o mango, a confirmar con Grovelab) y la planta cambia y sugiere los productos recomendados.</li>
+      <li><strong>Cosecha:</strong> el fruto maduro cierra con el botón «Solicitar asesoría para tu cultivo».</li>
+    </ol>
+    <p><strong>Por qué funciona:</strong> cuenta el diferencial de Grovelab (formulaciones específicas por cultivo y suelo) de forma visual y memorable, algo que una web de catálogo no muestra.</p>
+    <p><strong>Cómo cuidamos el rendimiento:</strong> se dibuja con gráficos vectoriales y animación CSS, sin video ni 3D pesado. En celulares se simplifica, quien prefiera menos movimiento ve una versión estática, y los productos y textos siempre están en la página para los buscadores.</p>
+  </div>
+</section>
+
+<section id="panel" class="wrap">
+  <div class="col">
+    <h2>Panel administrable, WhatsApp y chat en línea</h2>
+    <p>El equipo de Grovelab podrá actualizar la web sin depender de un programador, y los clientes podrán contactarlos por WhatsApp o chat desde cualquier página.</p>
+
+    <h3>Panel administrable</h3>
+    <ul>
+      <li>Productos: nombre, categoría, cultivos, plagas, ingrediente activo, registro SENASA, imágenes y fichas técnicas en PDF.</li>
+      <li>Cultivos, noticias y blog, zonas comerciales, banners y textos del sitio.</li>
+      <li>Consultas recibidas por los formularios, con aviso por correo.</li>
+      <li>Usuarios con permisos distintos, por ejemplo uno que solo publica noticias.</li>
+      <li>Carga inicial de los productos actuales (alrededor de 70, a confirmar) para no empezar de cero.</li>
+    </ul>
+
+    <h3>WhatsApp</h3>
+    <ul>
+      <li>Botón flotante en todas las páginas.</li>
+      <li>En cada ficha de producto, un botón que abre WhatsApp con el mensaje ya escrito («Hola, quiero información sobre [producto]»).</li>
+    </ul>
+
+    <h3>Chat en línea</h3>
+    <ul>
+      <li>Ventana de chat atendida por el equipo de Grovelab, con un servicio externo que ofrece plan gratuito para empezar.</li>
+      <li>Opcional y como alcance adicional: respuestas automáticas por la API oficial de WhatsApp, que tiene costo mensual de terceros.</li>
+    </ul>
+
+    <h3>Formularios de cotización</h3>
+    <p>Con aceptación de la política de datos personales y registro de cada consulta en el panel.</p>
+  </div>
+</section>
+
+<section id="nextjs" class="wrap">
+  <div class="wide">
+    <h2>Por qué Next.js y no continuar con WordPress</h2>
+    <div class="col">
+      <p>Proponemos construir la web desde cero con Next.js porque la web actual tendría que rehacerse casi por completo para alcanzar el nivel buscado, y Next.js permite una web más rápida, segura y con diseño a medida.</p>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>Aspecto</th><th>Web actual (WordPress con plugins)</th><th>Web nueva (Next.js con panel administrable)</th></tr></thead>
+      <tbody>
+        <tr><td>Velocidad</td><td data-label="Web actual (WordPress con plugins)">Depende del tema y de cada plugin; las páginas se arman al ser pedidas</td><td data-label="Web nueva (Next.js con panel administrable)">Páginas generadas con anticipación, servidas desde una red global e imágenes optimizadas automáticamente</td></tr>
+        <tr><td>Seguridad y mantenimiento</td><td data-label="Web actual (WordPress con plugins)">WordPress y cada plugin necesitan actualizaciones frecuentes y son objetivo habitual de ataques</td><td data-label="Web nueva (Next.js con panel administrable)">Menos piezas de terceros, por tanto menos puntos débiles y menos actualizaciones</td></tr>
+        <tr><td>Diseño</td><td data-label="Web actual (WordPress con plugins)">Limitado por el tema y los plugins</td><td data-label="Web nueva (Next.js con panel administrable)">Libertad total, necesaria para la experiencia «Del suelo a la cosecha»</td></tr>
+        <tr><td>Posicionamiento en buscadores</td><td data-label="Web actual (WordPress con plugins)">Depende de plugins de SEO</td><td data-label="Web nueva (Next.js con panel administrable)">Control directo de títulos, descripciones, datos estructurados y direcciones</td></tr>
+        <tr><td>Panel de administración</td><td data-label="Web actual (WordPress con plugins)">Conocido, pero con muchos menús que no se usan</td><td data-label="Web nueva (Next.js con panel administrable)">Limpio, solo con lo que Grovelab edita</td></tr>
+        <tr><td>Nuevas funciones</td><td data-label="Web actual (WordPress con plugins)">Cada función suele sumar otro plugin</td><td data-label="Web nueva (Next.js con panel administrable)">Se programa solo lo necesario</td></tr>
+      </tbody>
+    </table>
+    <div class="col">
+      <h3>Lo que debemos aclarar con transparencia</h3>
+      <ul>
+        <li>WordPress bien construido también puede ser rápido. Elegimos Next.js porque el objetivo incluye una experiencia a medida y alto rendimiento, y porque la web actual, con archivos desde 2019, requeriría rehacerse de todos modos.</li>
+        <li>El contenido (productos, noticias, textos) lo edita Grovelab desde el panel. Los cambios de diseño o de estructura sí requieren un desarrollador.</li>
+        <li>Para no perder posicionamiento, mantendremos las direcciones actuales de los productos o las redirigiremos a las nuevas.</li>
+        <li>La web nueva se publica en un hosting para Next.js con un costo mensual bajo, que detallaremos en la propuesta; el dominio actual se conserva.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="pasos" class="wrap">
+  <div class="col">
+    <h2>Siguientes pasos</h2>
+    <p>El siguiente paso es <a href="https://wa.me/51935803086" target="_blank" rel="noopener">dar Click aquí</a></p>
+    <ol>
+   
+      <li>Plazos e inversión.</li>
+    </ol>
+
+  
+
+    <a class="cta" id="cta" href="#pasos" hidden>Coordinar la llamada de 20 minutos</a>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap">
+  <p>Propuesta de rediseño web para Grovelab, 13 de octubre de 2026.</p>
+  <p id="firma" hidden></p>
+</footer>
+
+<script>
+(function () {
+  /* Edita estos datos antes de publicar. Si dejas el WhatsApp vacío, el botón final no se muestra. */
+  var CONTACTO = {
+    nombre: "",
+    whatsapp: "",
+    mensaje: "Hola, vi la propuesta de rediseño web de Grovelab y me gustaría coordinar la llamada de 20 minutos."
+  };
+
+  var root = document.documentElement;
+  var stem = document.getElementById("stem");
+  var leaves = Array.prototype.slice.call(document.querySelectorAll(".leaf"));
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var ticking = false;
+
+  function update() {
+    var max = root.scrollHeight - window.innerHeight;
+    var p = reduce ? 1 : Math.min(1, Math.max(0, max > 0 ? window.scrollY / max : 1));
+    root.style.setProperty("--p", p.toFixed(4));
+    leaves.forEach(function (leaf, i) {
+      leaf.classList.toggle("on", p >= (i + 1) / 8 - 0.02);
+    });
+    stem.classList.toggle("done", p > 0.985);
+    ticking = false;
+  }
+
+  window.addEventListener("scroll", function () {
+    if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
+  }, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+
+  var digits = CONTACTO.whatsapp.replace(/\D/g, "");
+  var cta = document.getElementById("cta");
+  if (digits) {
+    cta.href = "https://wa.me/" + digits + "?text=" + encodeURIComponent(CONTACTO.mensaje);
+    cta.hidden = false;
+  }
+  if (CONTACTO.nombre) {
+    var firma = document.getElementById("firma");
+    firma.textContent = "Preparada por " + CONTACTO.nombre + ".";
+    firma.hidden = false;
+  }
+})();
+</script>
+</body>
+</html>
